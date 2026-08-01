@@ -1,3 +1,5 @@
+name: flyrank-intern
+
 services:
   app:
     build: .
