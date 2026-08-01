@@ -1,4 +1,4 @@
-# Week 1 – Task API (SQLite edition)
+# Task API (SQLite edition)
 
 A small Express CRUD API for managing tasks, backed by a SQLite database instead of an in-memory array. Restarting the server no longer wipes your data.
 
