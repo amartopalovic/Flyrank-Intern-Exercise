@@ -32,6 +32,22 @@ app.get("/tasks/:id", (req, res) => {
   res.json(task);
 });
 
+app.post("/tasks", (req, res) => {
+  const { title } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ error: "Title is required" });
+  }
+
+  const result = db
+    .prepare("INSERT INTO tasks (title, done) VALUES (?, ?)")
+    .run(title, req.body.done ? 1 : 0);
+
+  const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(result.lastInsertRowid);
+
+  res.status(201).json(task);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
