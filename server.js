@@ -1,5 +1,5 @@
 const express = require("express");
-const db = require("./db");
+const taskRepository = require("./taskRepository");
 const app = express();
 const PORT = 3000;
 
@@ -18,12 +18,12 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/tasks", (req, res) => {
-  const tasks = db.prepare("SELECT * FROM tasks").all();
+  const tasks = taskRepository.getAll();
   res.json(tasks);
 });
 
 app.get("/tasks/:id", (req, res) => {
-  const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(req.params.id);
+  const task = taskRepository.getById(req.params.id);
 
   if (!task) {
     return res.status(404).json({ error: "Task not found" });
@@ -39,35 +39,29 @@ app.post("/tasks", (req, res) => {
     return res.status(400).json({ error: "Title is required" });
   }
 
-  const result = db
-    .prepare("INSERT INTO tasks (title, done) VALUES (?, ?)")
-    .run(title, req.body.done ? 1 : 0);
-
-  const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(result.lastInsertRowid);
+  const task = taskRepository.create(title, req.body.done);
 
   res.status(201).json(task);
 });
 
 app.put("/tasks/:id", (req, res) => {
-  const existing = db.prepare("SELECT * FROM tasks WHERE id = ?").get(req.params.id);
+  const existing = taskRepository.getById(req.params.id);
 
   if (!existing) {
     return res.status(404).json({ error: "Task not found" });
   }
 
   const title = req.body.title ?? existing.title;
-  const done = req.body.done !== undefined ? (req.body.done ? 1 : 0) : existing.done;
+  const done = req.body.done !== undefined ? req.body.done : existing.done;
 
-  db.prepare("UPDATE tasks SET title = ?, done = ? WHERE id = ?").run(title, done, req.params.id);
-
-  const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(req.params.id);
+  const task = taskRepository.update(req.params.id, title, done);
   res.json(task);
 });
 
 app.delete("/tasks/:id", (req, res) => {
-  const result = db.prepare("DELETE FROM tasks WHERE id = ?").run(req.params.id);
+  const deleted = taskRepository.remove(req.params.id);
 
-  if (result.changes === 0) {
+  if (!deleted) {
     return res.status(404).json({ error: "Task not found" });
   }
 
