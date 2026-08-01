@@ -1,23 +1,21 @@
-const Database = require("better-sqlite3");
+const { Pool } = require("pg");
+const fs = require("fs");
 const path = require("path");
 
-const db = new Database(path.join(__dirname, "tasks.db"));
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    done BOOLEAN NOT NULL DEFAULT 0
-  )
-`);
+async function init() {
+  const schema = fs.readFileSync(path.join(__dirname, "init.sql"), "utf8");
+  await pool.query(schema);
 
-const { count } = db.prepare("SELECT COUNT(*) AS count FROM tasks").get();
+  const { rows } = await pool.query("SELECT COUNT(*) AS count FROM tasks");
 
-if (count === 0) {
-  const insert = db.prepare("INSERT INTO tasks (title, done) VALUES (?, ?)");
-  insert.run("Buy milk", 0);
-  insert.run("Walk the dog", 0);
-  insert.run("Finish SQLite assignment", 1);
+  if (Number(rows[0].count) === 0) {
+    await pool.query(
+      "INSERT INTO tasks (title, done) VALUES ($1, $2), ($3, $4), ($5, $6)",
+      ["Buy milk", false, "Walk the dog", false, "Finish SQLite assignment", true]
+    );
+  }
 }
 
-module.exports = db;
+module.exports = { pool, init };
